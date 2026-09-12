@@ -10,6 +10,8 @@ decile_df = pd.read_csv(os.path.join(BASE_DIR, "data", "decile_summary.csv"))
 relativities_df = pd.read_csv(os.path.join(BASE_DIR, "data", "relativities.csv"))
 sample_df = pd.read_csv(os.path.join(BASE_DIR, "data", "sample_predictions.csv"))
 gini_df = pd.read_csv(os.path.join(BASE_DIR, "data", "gini_score.csv"))
+
+tab1, tab2 = st.tabs(["Dashboard", "Full Report"])
 with tab1:
     st.title("Motor Insurance Ratemaking Dashboard")
     st.write("A GLM-based pricing model for the French Motor Third-Party Liability dataset.")

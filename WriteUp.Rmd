@@ -1,0 +1,86 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+source("setup_pipeline.R")
+library(ggplot2)
+```
+
+## Problem Statement
+
+Auto insurance companies need to price their policies according to the expected risk of drivers. This project builds a ratemaking model which predicts expected claim frequency/severity from policyholder and vehicle qualities and combines them into a risk-based pure premium using the French Motor Third-Party Liability dataset.
+
+## Data Description
+
+This analysis uses the freMTPL2 (French Motor Third-Party Liability) dataset, which is a standard benchmark in actuarial ratemaking research. It uses two linked tables. The first is **freMTPL2freq**, which has 677,991 policy years with rating factors such as driver age, vehicle age/power, bonus-malus score, fuel type, population density, and region. The other table is **freMTPL2sev**, which contains 26,444 individual claim records with corresponding claim amounts. The two tables were merged on policy ID to link rating factors to each claim for severity modeling. Vehicle age was capped at 20 years to remove implausible outliers (such as a small number of records which show 100-year-old vintage vehicles), which follows standard treatment of this dataset in the literature.
+
+## Exploratory Data Analysis
+
+```{r driver-age-plot}
+ggplot(freMTPL2freq, aes(x = DrivAge)) +
+  geom_histogram(binwidth = 5, fill = "steelblue", color = "white") +
+  labs(title = "Distribution of Driver Age", x = "Driver Age", y = "Count")
+```
+
+```{r bonusmalus-plot}
+ggplot(freMTPL2freq, aes(x = BonusMalus)) +
+  geom_histogram(binwidth = 5, fill = "darkorange", color = "white") +
+  labs(title = "Distribution of Bonus-Malus Score", x = "Bonus-Malus", y = "Count")
+```
+
+```{r severity-plot}
+ggplot(sev_merged, aes(x = ClaimAmount)) +
+  geom_histogram(bins = 50, fill = "firebrick", color = "white") +
+  labs(title = "Distribution of Claim Severity", x = "Claim Amount", y = "Count") +
+  xlim(0, 20000)
+```
+
+## Frequency Model (Poisson GLM)
+
+```{r freq-model-summary}
+summary(freq_model)
+```
+
+## Severity Model (Gamma GLM)
+
+```{r sev-model-summary}
+summary(sev_model)
+```
+
+## Model Validation
+
+```{r decile-table}
+decile_summary <- freMTPL2freq %>%
+  group_by(decile) %>%
+  summarise(
+    avg_predicted = sum(predicted) / sum(Exposure),
+    avg_actual = sum(ClaimNb) / sum(Exposure),
+    n_policies = n()
+  )
+knitr::kable(decile_summary, digits = 4, caption = "Predicted vs. Actual Claim Rate by Risk Decile")
+```
+
+```{r lift-chart}
+ggplot(decile_summary, aes(x = decile)) +
+  geom_line(aes(y = avg_predicted, color = "Predicted"), linewidth = 1) +
+  geom_line(aes(y = avg_actual, color = "Actual"), linewidth = 1) +
+  geom_point(aes(y = avg_predicted, color = "Predicted")) +
+  geom_point(aes(y = avg_actual, color = "Actual")) +
+  labs(title = "Lift Chart: Predicted vs. Actual Claim Rate by Decile",
+       x = "Risk Decile", y = "Claim Rate", color = "") +
+  scale_x_continuous(breaks = 1:10)
+```
+
+```{r gini-score}
+library(DescTools)
+gini_model <- Gini(freMTPL2freq$predicted_rate, freMTPL2freq$ClaimNb / freMTPL2freq$Exposure)
+cat("Model Gini coefficient:", round(gini_model, 4))
+```
+
+## Key Findings
+
+Several patterns emerged from the frequency and severity models:
+
+- **Bonus-malus score is the overall strongest predictor.** Bonus-malus was highly significant in both the frequency (a 1-point increase corresponds to a 2.6% increase in expected claim rate) and the severity model. This indicates that driving history can predict both how often and how expensive claims are.
+- **Frequency and severity do not share the same causes.** Area/population density and vehicle power were strong, significant predictors of frequency, yet they had no significant effect on severity. How often an accident happens depends heavily on traffic density, but how expensive the accident is does not depend on traffic density.
+- **Region added little value once Area was included.** This is likely due to the fact that regional differences in claim frequency can be explained by population density. For this reason, Region was dropped from the severity model.
+- **The frequency model meaningfully separates risk.** A decile analysis showed predicted and actual claim rates tracking closely across different risk groups (from 3.6% in the lowest decile to 18.6% in the highest), and the model achieved a Gini coefficient of 0.32, compared to approximately 0 for a naive model that assumed every policy held the same risk.
+- **Severity is harder to predict than frequency.** Consistent with actuarial literature, the predictors for the severity model explained comparatively little of the variation in claim cost. This reflects the fact that how expensive an individual accident is (minor parking incident vs. total loss vs. major injury claim) is largely driven by unpredictable circumstances.

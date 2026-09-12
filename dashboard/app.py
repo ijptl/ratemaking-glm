@@ -1,12 +1,15 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import os
 
-# load exported data from R
-decile_df = pd.read_csv("data/decile_summary.csv")
-relativities_df = pd.read_csv("data/relativities.csv")
-sample_df = pd.read_csv("data/sample_predictions.csv")
-gini_df = pd.read_csv("data/gini_score.csv")
+# load data from base direct
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+decile_df = pd.read_csv(os.path.join(BASE_DIR, "data", "decile_summary.csv"))
+relativities_df = pd.read_csv(os.path.join(BASE_DIR, "data", "relativities.csv"))
+sample_df = pd.read_csv(os.path.join(BASE_DIR, "data", "sample_predictions.csv"))
+gini_df = pd.read_csv(os.path.join(BASE_DIR, "data", "gini_score.csv"))
 
 st.title("Motor Insurance Ratemaking Dashboard")
 st.write("A GLM-based pricing model for the French Motor Third-Party Liability dataset.")

@@ -79,12 +79,18 @@ with tab1:
     st.plotly_chart(fig_rel)
 
     st.subheader("What Drives Risk Most?")
-    top_factors = relativities_df[relativities_df["factor"] != "(Intercept)"].copy()
+    # only keep statistically significant factors (p < 0.05) so the
+    # ranking isn't skewed by noisy, unreliable coefficients (e.g. Region)
+    top_factors = relativities_df[
+        (relativities_df["factor"] != "(Intercept)") &
+        (relativities_df["p_value"] < 0.05)
+    ].copy()
     top_factors["abs_effect"] = (top_factors["relativity"] - 1).abs()
     top_factors = top_factors.nlargest(10, "abs_effect")
     fig_importance = px.bar(top_factors, x="abs_effect", y="factor", orientation="h",
-                              title="Top 10 Rating Factors by Effect Size")
+                              title="Top Statistically Significant Rating Factors")
     st.plotly_chart(fig_importance)
+    st.caption("Only includes factors significant at p < 0.05 in the frequency model.")
 
     st.subheader("Premium Calculator")
 

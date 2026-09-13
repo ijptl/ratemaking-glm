@@ -11,12 +11,32 @@ relativities_df = pd.read_csv(os.path.join(BASE_DIR, "data", "relativities.csv")
 sample_df = pd.read_csv(os.path.join(BASE_DIR, "data", "sample_predictions.csv"))
 gini_df = pd.read_csv(os.path.join(BASE_DIR, "data", "gini_score.csv"))
 
+gini_value = gini_df["value"].iloc[0]
+
+# sidebar summary
+st.sidebar.header("Project Summary")
+st.sidebar.metric("Policies Analyzed", "677,991")
+st.sidebar.metric("Claims Analyzed", "26,444")
+st.sidebar.metric("Model Gini", gini_value)
+
 tab1, tab2 = st.tabs(["Dashboard", "Full Report"])
 with tab1:
     st.title("Motor Insurance Ratemaking Dashboard")
     st.write("A GLM-based pricing model for the French Motor Third-Party Liability dataset.")
 
-    gini_value = gini_df["value"].iloc[0]
+    with st.expander("About this project"):
+        st.markdown("""
+        This dashboard presents an actuarial ratemaking model built on the French Motor 
+        Third-Party Liability dataset (677K+ policies, 26K+ claims). It uses separate 
+        Poisson and Gamma GLMs to model claim **frequency** and **severity**, then combines 
+        them into risk-based pricing.
+
+        **Tech stack:** R (GLM modeling, validation) → Python/Streamlit (this dashboard)  
+        **Code & methodology:** [GitHub repo](https://github.com/ijptl/ratemaking-glm)
+        """)
+
+    with st.expander("Preview the underlying data"):
+        st.dataframe(sample_df.head(20))
 
     col1, col2 = st.columns(2)
     col1.metric("Model Gini Coefficient", gini_value)
@@ -57,6 +77,14 @@ with tab1:
     )
     fig_rel.add_hline(y=1, line_dash="dash", line_color="gray")
     st.plotly_chart(fig_rel)
+
+    st.subheader("What Drives Risk Most?")
+    top_factors = relativities_df[relativities_df["factor"] != "(Intercept)"].copy()
+    top_factors["abs_effect"] = (top_factors["relativity"] - 1).abs()
+    top_factors = top_factors.nlargest(10, "abs_effect")
+    fig_importance = px.bar(top_factors, x="abs_effect", y="factor", orientation="h",
+                              title="Top 10 Rating Factors by Effect Size")
+    st.plotly_chart(fig_importance)
 
     st.subheader("Premium Calculator")
 

@@ -90,7 +90,12 @@ with tab1:
     fig_importance = px.bar(top_factors, x="abs_effect", y="factor", orientation="h",
                               title="Top Statistically Significant Rating Factors")
     st.plotly_chart(fig_importance)
-    st.caption("Only includes factors significant at p < 0.05 in the frequency model.")
+    st.caption(
+        "Only includes factors significant at p < 0.05 in the frequency model. "
+        "Note: continuous variables (VehPower, VehAge, DrivAge, BonusMalus) show the effect of "
+        "one unit of change, so they may rank lower here even when highly significant — "
+        "this chart measures effect size, not statistical significance."
+    )
 
     st.subheader("Premium Calculator")
 

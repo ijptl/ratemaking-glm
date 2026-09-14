@@ -93,8 +93,8 @@ with tab1:
     st.caption(
         "Only includes factors significant at p < 0.05 in the frequency model. "
         "Note: continuous variables (VehPower, VehAge, DrivAge, BonusMalus) show the effect of "
-        "one unit of change, so they may rank lower here even when highly significant — "
-        "this chart measures effect size, not statistical significance."
+        "one unit of change, so they may rank lower here even when highly significant. "
+        "This chart measures effect size, not statistical significance."
     )
 
     st.subheader("Premium Calculator")
